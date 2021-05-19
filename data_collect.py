@@ -46,7 +46,7 @@ class CatList:
         # Starting category-level URL
         self.base_url = f"https://substack.com/api/v1/category/public/{self.cat_num}/all?page="
 
-    def __process_result(r):
+    def __process_result(self, r):
         """Small function to grab results from JSON file
 
         Args:
