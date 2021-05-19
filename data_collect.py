@@ -4,9 +4,12 @@ Usage: data_collect.py
 
 Runs data collection steps
 """
+import json
+import pathlib
 import time
 
 import requests
+from tqdm import tqdm
 
 # Substack's categories correspond to hard-coded numbers
 CATEGORIES = [
@@ -31,10 +34,13 @@ CATEGORIES = [
     ('education', 34)
 ]
 
+DATA_PATH = pathlib.Path("./data/")
+
 
 class CatList:
     """One category of newsletters, with methods for retrieval
     """
+
     def __init__(self, cat):
         self.cat_name, self.cat_num = cat
         # Starting category-level URL
@@ -54,7 +60,8 @@ class CatList:
             publications = r_json['publications']
             more = r_json['more']
         else:
-            raise Exception(f"HTTP request returned status code {r.status_code}")
+            raise Exception(
+                f"HTTP request returned status code {r.status_code}")
 
         return publications, more
 
@@ -75,3 +82,16 @@ class CatList:
             time.sleep(2)
 
         return publications
+
+
+if __name__ == "__main__":
+    # Iterate through categories
+    for cat in tqdm(CATEGORIES):
+        # Instatiate category
+        cl = CatList(cat)
+        # Get list of publication objects
+        publications = cl.iter_list()
+        # Save publications to disk
+        obj_path = DATA_PATH / f"{cat[0]}.json"
+        with open(obj_path, "w", encoding="utf-8") as f:
+            json.dump(publications, f)
