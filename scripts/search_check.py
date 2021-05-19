@@ -1,6 +1,9 @@
 # Check search method - how many newsletters, overlap w/categories, activity level
 # %%
+import glob
+import json
 import pickle
+import random
 import time
 
 import requests
@@ -37,7 +40,7 @@ for k in tqdm(todo):
         pass
 
 # %%
-with open("data/search.pkl", "wb") as f:
+with open("../data/search.pkl", "wb") as f:
     pickle.dump(all_results, f)
 
 # %%
@@ -52,4 +55,46 @@ for k,v in all_results.items():
     all_ids.extend(ids)
 # %%
 len(set(all_ids))
+# %%
+with open("../data/search.pkl", "rb") as f:
+    search = pickle.load(f)
+# %%
+search_ids = [[i['id'] for i in v] for k,v in search.items()]
+search_ids = [i for l in search_ids for i in l]
+search_ids = set(search_ids)
+# %%
+cat_files = glob.glob("../data/*.json")
+cat = []
+for i in cat_files:
+    with open(i, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    cat.extend(data)
+
+# %%
+cat_ids = [i['id'] for i in cat]
+cat_ids = set(cat_ids)
+# %%
+len(search_ids.intersection(cat_ids))
+# %%
+cat_only = cat_ids.difference(search_ids)
+search_only = search_ids.difference(cat_ids)
+both = search_ids.intersection(cat_ids)
+# %%
+# Random sample from each
+search_sample = random.sample(search_only, 50)
+cat_sample = random.sample(cat_only, 50)
+both_sample = random.sample(both, 50)
+# %%
+search_nl = {}
+for _,v in search.items():
+    for i in v:
+        if i['id'] in search_sample:
+            search_nl[i['id']] = i
+search_nl = [v for _,v in search_nl.items()]
+# %%
+cat_nl = [i for i in cat if i['id'] in cat_sample]
+# %%
+both_nl = [i for i in cat if i['id'] in both_sample]
+# %%
+search_nl[0]['base_url']
 # %%
