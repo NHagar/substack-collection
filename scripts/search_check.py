@@ -2,10 +2,13 @@
 # %%
 import glob
 import json
+from json.decoder import JSONDecodeError
 import pickle
 import random
+import statistics
 import time
 
+import pandas as pd
 import requests
 
 from tqdm import tqdm
@@ -95,6 +98,74 @@ search_nl = [v for _,v in search_nl.items()]
 cat_nl = [i for i in cat if i['id'] in cat_sample]
 # %%
 both_nl = [i for i in cat if i['id'] in both_sample]
+
 # %%
-search_nl[0]['base_url']
+def post_loop(host, start, chunk):
+    base_url = f"{host}/api/v1/archive?sort=new&offset={start}&limit={chunk}"
+    call = requests.get(base_url)
+    try:
+        r = call.json()
+    except json.JSONDecodeError:
+        print("json error")
+        r = []    
+    return r
+
+def get_posts(host, start, chunk):
+    results = []
+    r = post_loop(host, start, chunk)
+    results.extend(r)
+    while len(r)>0:
+        start += chunk
+        r = post_loop(host, start, chunk)
+        results.extend(r)
+        time.sleep(2)
+    
+    return results
+
+def get_nl_stats(nl_list):
+    nl_stats = []
+    for i in tqdm(nl_list):
+        it = 0
+        limit = 14
+        host = i['base_url']
+        posts = get_posts(host, it, limit)
+        post_num = len(posts)
+        if post_num>0:
+            most_recent = posts[0]['post_date']
+        else:
+            most_recent = ""
+        stats = {'newsletter': i['name'], 'posts': post_num, 'most_recent': most_recent}
+        nl_stats.append(stats)
+    
+    return nl_stats
+
+# %%
+search_stats = get_nl_stats(search_nl)
+cat_stats = get_nl_stats(cat_nl)
+both_stats = get_nl_stats(both_nl)
+# %%
+def pmedian(posts):
+    pcounts = [i['posts'] for i in posts]
+    return statistics.median(pcounts)
+# %%
+pmedian(cat_stats)
+# %%
+pmedian(search_stats)
+# %%
+pmedian(both_stats)
+
+# %%
+def pdelta(posts):
+    today = pd.to_datetime('today', utc=True)
+    pdates = [pd.to_datetime(i['most_recent']) for i in posts]
+    deltas = [(today - i).days for i in pdates]
+
+    return statistics.median(deltas)
+
+# %%
+pdelta(cat_stats)
+# %%
+pdelta(both_stats)
+# %%
+pdelta(search_stats)
 # %%
