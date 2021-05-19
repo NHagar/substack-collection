@@ -15,11 +15,10 @@ HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'
 }
 keywords = ['featured', 'culture', 'politics', 'technology', 'climate', 'business', 'food', 'drink', 'sports', 'faith', 'news', 'literary', 'art', 'illustration', 'health']
-todo = [i for i in keywords if i not in [*all_results]]
 
 # %%
-# all_results = {}
-for k in tqdm(todo):
+all_results = {}
+for k in tqdm(all_results):
     it = 0
     query = url + f"?query={k}&page={it}"
     r = requests.get(query, headers=HEADERS)
@@ -59,6 +58,7 @@ len(set(all_ids))
 with open("../data/search.pkl", "rb") as f:
     search = pickle.load(f)
 # %%
+# Comparing search versus category methods
 search_ids = [[i['id'] for i in v] for k,v in search.items()]
 search_ids = [i for l in search_ids for i in l]
 search_ids = set(search_ids)
