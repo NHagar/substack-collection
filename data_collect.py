@@ -4,10 +4,9 @@ Usage: data_collect.py
 
 Runs data collection steps
 """
+import time
 
 import requests
-
-
 
 # Substack's categories correspond to hard-coded numbers
 CATEGORIES = [
@@ -32,7 +31,29 @@ CATEGORIES = [
     ('education', 34)
 ]
 
+class CatList:
+    def __init__(self, cat):
+        self.cat_name, self.cat_num = cat
+        # Starting category-level URL
+        self.base_url = f"https://substack.com/api/v1/category/public/{self.cat_num}/all?page="
 
-for cat in CATEGORIES:
-    json_results = iter_all(cat)
-    ""
+    def __process_result(r):
+        if r.ok:
+            r_json = r.json()
+            publications = r_json['publications']
+            more = r_json['more']
+        
+        return publications, more
+
+    def iter_list(self):
+        it = 0
+        first_call = requests.get(f"{self.base_url}{it}")
+        publications, more = self.__process_result(first_call)
+        while more:
+            it += 1
+            call = requests.get(f"{self.base_url}{it}")
+            add_publications, more = self.__process_result(call)
+            publications.extend(add_publications)
+            time.sleep(2)
+        
+        return publications
