@@ -9,7 +9,7 @@ const output_f = argv.o;
     const context = await browser.newContext();
     const page = await context.newPage();
     // go to user page
-    await page.goto("https://reader.substack.com/discover");
+    await page.goto("https://substack.com");
     await page.setViewportSize({
         width: 1200,
         height: 800
