@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Usage: data_collect.py
+Usage: category_collect.py
 
 Runs data collection steps
 """
