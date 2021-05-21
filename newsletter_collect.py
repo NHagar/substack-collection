@@ -29,24 +29,23 @@ class Newsletter:
         return r
     
     def create_and_check_dir(self, nl_path):
-        obj_path = nl_path / self.id
+        obj_path = nl_path / str(self.id)
         if not obj_path.is_dir():
             obj_path.mkdir()
-        else:
-            self.index_path = obj_path / "index.json"
-            self.has_index = self.index_path.is_file()
-            self.posts_path = obj_path / "posts.json"
-            self.has_posts = self.posts_path.is_file()
+        self.index_path = obj_path / "index.json"
+        self.has_index = self.index_path.is_file()
+        self.posts_path = obj_path / "posts.json"
+        self.has_posts = self.posts_path.is_file()
 
     def get_index(self):
         start = 0
         chunk = 14
         posts = []
-        r = __index_loop(start, chunk)
+        r = self.__index_loop(start, chunk)
         posts.extend(r)
         while len(r)>0:
             start += chunk
-            r = __index_loop(start, chunk)
+            r = self.__index_loop(start, chunk)
             posts.extend(r)
         
         self.index = posts
@@ -94,10 +93,10 @@ if __name__ == "__main__":
         # Build index file if missing
         if not nl_object.has_index:
             nl_object.get_index()
-            with open(nl_object.index_path, "r", encoding="utf-8") as f:
+            with open(nl_object.index_path, "w", encoding="utf-8") as f:
                 json.dump(nl_object.index, f)
         # Build post file if missing
         if not nl_object.has_posts:
             nl_object.get_posts()
-            with open(nl_object.posts_path, "r", encoding="utf-8") as f:
+            with open(nl_object.posts_path, "w", encoding="utf-8") as f:
                 json.dump(nl_object.posts, f)
