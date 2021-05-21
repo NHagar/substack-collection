@@ -85,6 +85,10 @@ class CatList:
 
 
 if __name__ == "__main__":
+    # Check directory structure, instantiate if necessary
+    cat_path = DATA_PATH / "categories"
+    if not cat_path.is_dir():
+        cat_path.mkdir(parents=True)
     # Iterate through categories
     for cat in tqdm(CATEGORIES):
         # Instatiate category
@@ -92,6 +96,6 @@ if __name__ == "__main__":
         # Get list of publication objects
         publications = cl.iter_list()
         # Save publications to disk
-        obj_path = DATA_PATH / f"{cat[0]}.json"
+        obj_path = cat_path / f"{cat[0]}.json"
         with open(obj_path, "w", encoding="utf-8") as f:
             json.dump(publications, f)
