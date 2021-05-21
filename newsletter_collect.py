@@ -52,7 +52,20 @@ class Newsletter:
         self.index = posts
 
     def get_posts(self):
-        ""
+        slugs = [i['slug'] for i in self.index]
+        posts = []
+        for s in slugs:
+            endpoint = f"{self.post_endpoint}/{s}"
+            call = requests.get(endpoint)
+            time.sleep(2)
+            try:
+                r = call.json()
+            except json.JSONDecodeError:
+                print("JSON error retrieving post")
+                r = {}
+            posts.append(r)
+
+        self.posts = posts
 
 
 def get_newsletters(dir):
@@ -80,11 +93,11 @@ if __name__ == "__main__":
         nl_object.create_and_check_dir(nl_path)
         # Build index file if missing
         if not nl_object.has_index:
-            post_index = nl_object.get_index()
+            nl_object.get_index()
             with open(nl_object.index_path, "r", encoding="utf-8") as f:
-                json.dump(post_index, f)
+                json.dump(nl_object.index, f)
         # Build post file if missing
         if not nl_object.has_posts:
-            post_objects = nl_object.get_posts()
+            nl_object.get_posts()
             with open(nl_object.posts_path, "r", encoding="utf-8") as f:
-                json.dump(post_objects, f)
+                json.dump(nl_object.posts, f)
