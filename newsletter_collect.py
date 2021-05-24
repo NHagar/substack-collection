@@ -19,7 +19,7 @@ class Newsletter:
     def __index_loop(self, start, chunk):
         url = f"{self.index_endpoint}?sort=new&offset={start}&limit={chunk}"
         call = requests.get(url)
-        time.sleep(2)
+        time.sleep(1)
         try:
             r = call.json()
         except json.JSONDecodeError:
@@ -34,6 +34,9 @@ class Newsletter:
             obj_path.mkdir()
         self.index_path = obj_path / "index.json"
         self.has_index = self.index_path.is_file()
+        if self.has_index:
+            with open(self.index_path, "r", encoding="utf-8") as f:
+                self.index = json.load(f)
         self.posts_path = obj_path / "posts.json"
         self.has_posts = self.posts_path.is_file()
 
@@ -51,12 +54,12 @@ class Newsletter:
         self.index = posts
 
     def get_posts(self):
-        slugs = [i['slug'] for i in self.index]
+        slugs = [i['slug'] for i in self.index if type(i)==dict]
         posts = []
         for s in slugs:
-            endpoint = f"{self.post_endpoint}/{s}"
+            endpoint = f"{self.post_endpoint}{s}"
             call = requests.get(endpoint)
-            time.sleep(2)
+            time.sleep(1)
             try:
                 r = call.json()
             except json.JSONDecodeError:
