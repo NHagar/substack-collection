@@ -7,6 +7,7 @@ Runs data collection steps
 import json
 import pathlib
 import time
+from typing import Tuple
 
 import requests
 from tqdm import tqdm
@@ -41,19 +42,13 @@ class CatList:
     """One category of newsletters, with methods for retrieval
     """
 
-    def __init__(self, cat):
+    def __init__(self, cat: tuple):
         self.cat_name, self.cat_num = cat
         # Starting category-level URL
         self.base_url = f"https://substack.com/api/v1/category/public/{self.cat_num}/all?page="
 
-    def __process_result(self, r):
+    def __process_result(self, r: requests.models.Response) -> Tuple[list,bool]:
         """Small function to grab results from JSON file
-
-        Args:
-            r (requests.models.Response): Response to be formatted
-
-        Returns:
-            list, bool: list of publications, pagination indicator 
         """
         if r.ok:
             r_json = r.json()
@@ -65,11 +60,8 @@ class CatList:
 
         return publications, more
 
-    def iter_list(self):
+    def iter_list(self) -> list:
         """Iterates through category list and collects all newsletters
-
-        Returns:
-            list: list of all publications in category
         """
         it = 0
         first_call = requests.get(f"{self.base_url}{it}")

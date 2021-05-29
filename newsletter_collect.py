@@ -19,13 +19,13 @@ DATA_PATH = pathlib.Path("./data/")
 class Newsletter:
     """Individual Substack newsletter, with methods to handle IO and collection
     """
-    def __init__(self, nlobj):
+    def __init__(self, nlobj: dict):
         self.id = nlobj['id']
         self.host = nlobj['base_url']
         self.index_endpoint = f"{self.host}/api/v1/archive"
         self.post_endpoint = f"{self.host}/api/v1/posts/"
 
-    def __index_loop(self, start, chunk):
+    def __index_loop(self, start: int, chunk: int) -> requests.models.Response:
         """Helper function for looping index file requests
         """
         url = f"{self.index_endpoint}?sort=new&offset={start}&limit={chunk}"
@@ -39,7 +39,7 @@ class Newsletter:
         
         return r
     
-    def create_and_check_dir(self, nl_path):
+    def create_and_check_dir(self, nl_path: pathlib.Path):
         """Handles directory and file checks
         """
         obj_path = nl_path / str(self.id)
@@ -87,7 +87,7 @@ class Newsletter:
         self.posts = posts
 
 
-def get_newsletters(dir):
+def get_newsletters(dir: pathlib.Path) -> list:
     """Load and concat newsletter files from a directory
     """
     nl_files = glob.glob(f"{dir}/*.json")
