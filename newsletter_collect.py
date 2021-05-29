@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+"""
+Usage: newsletter_collect.py
+
+Runs data collection steps
+"""
+
 import glob
 import json
 import pathlib
@@ -10,6 +17,8 @@ DATA_PATH = pathlib.Path("./data/")
 
 
 class Newsletter:
+    """Individual Substack newsletter, with methods to handle IO and collection
+    """
     def __init__(self, nlobj):
         self.id = nlobj['id']
         self.host = nlobj['base_url']
@@ -17,6 +26,8 @@ class Newsletter:
         self.post_endpoint = f"{self.host}/api/v1/posts/"
 
     def __index_loop(self, start, chunk):
+        """Helper function for looping index file requests
+        """
         url = f"{self.index_endpoint}?sort=new&offset={start}&limit={chunk}"
         call = requests.get(url)
         time.sleep(1)
@@ -29,6 +40,8 @@ class Newsletter:
         return r
     
     def create_and_check_dir(self, nl_path):
+        """Handles directory and file checks
+        """
         obj_path = nl_path / str(self.id)
         if not obj_path.is_dir():
             obj_path.mkdir()
@@ -41,6 +54,8 @@ class Newsletter:
         self.has_posts = self.posts_path.is_file()
 
     def get_index(self):
+        """Grab the post index file
+        """
         start = 0
         chunk = 14
         posts = []
@@ -54,6 +69,8 @@ class Newsletter:
         self.index = posts
 
     def get_posts(self):
+        """Grab individual post bodies
+        """
         slugs = [i['slug'] for i in self.index if type(i)==dict]
         posts = []
         for s in slugs:
@@ -71,6 +88,8 @@ class Newsletter:
 
 
 def get_newsletters(dir):
+    """Load and concat newsletter files from a directory
+    """
     nl_files = glob.glob(f"{dir}/*.json")
     nls = []
     for i in nl_files:
