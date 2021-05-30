@@ -103,3 +103,14 @@ len(r)
 # %%
 r[-1]
 # %%
+with open("../data/newsletters/100228/index.json", "r", encoding="utf-8") as f:
+    index = json.load(f)
+with open("../data/newsletters/100228/posts.json", "r", encoding="utf-8") as f:
+    posts = json.load(f)
+# %%
+len(index)
+# %%
+len(posts)
+# %%
+index
+# %%
