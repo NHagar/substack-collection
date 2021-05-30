@@ -57,7 +57,7 @@ class Newsletter:
         """Grab the post index file
         """
         start = 0
-        chunk = 14
+        chunk = 12
         posts = []
         r = self.__index_loop(start, chunk)
         posts.extend(r)
