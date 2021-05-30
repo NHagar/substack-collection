@@ -17,8 +17,6 @@ for i in nl_dirs:
     if len(index)>11:
         topatch.append(i.split("\\")[-2])
 # %%
-topatch[0]
-# %%
 def get_newsletters(dir) -> list:
     """Load and concat newsletter files from a directory
     """
@@ -37,23 +35,25 @@ newsletters = get_newsletters(cat_path)
 
 # %%
 for i in tqdm(topatch):
-    print(i)
+    # Get nl object, set up variables
     obj = [n for n in newsletters if str(n['id'])==i][0]
     index_url = f"{obj['base_url']}/api/v1/archive"
     post_url = f"{obj['base_url']}/api/v1/posts/"
     index_path = f"../data/newsletters/{i}/index.json"
     post_path = f"../data/newsletters/{i}/posts.json"
+    # Get current index and posts
     with open(index_path, "r", encoding="utf-8") as f:
         index = json.load(f)
     with open(post_path, "r", encoding="utf-8") as f:
         posts = json.load(f)
-
+    # Get post IDs and dt of latest post
     post_ids = [p['id'] for p in posts]
     latest = pd.to_datetime(index[0]['post_date'])
-
+    # Collecting index
     offset = 0
     limit = 12
     needed_index = []
+    # Only get the first two pages
     while offset<limit * 2:
         url = f"{index_url}?sort=new&offset={offset}&limit={limit}"
         r = requests.get(url)
@@ -65,7 +65,7 @@ for i in tqdm(topatch):
             pass
         offset += limit
     print(f"Found new posts: {len(needed_index)}")
-
+    # Collecting posts
     needed_posts = []
     for post in needed_index:
         url = f"{post_url}{post['slug']}"
@@ -75,7 +75,9 @@ for i in tqdm(topatch):
             needed_posts.append(rjs)
         except json.JSONDecodeError:
             pass
-    
+    # This is a silly check to make sure we're not
+    # destroying data on write. It also saves a little
+    # time by not writing if there aren't new posts.
     indlen = len(index)
     # Extend and save index
     index.extend(needed_index)
@@ -92,4 +94,3 @@ for i in tqdm(topatch):
             json.dump(index, f)
     else:
         pass
-# %%
