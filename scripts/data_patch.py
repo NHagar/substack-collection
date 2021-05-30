@@ -2,6 +2,7 @@
 # %%
 import glob
 import json
+from time import sleep
 
 import pandas as pd
 import requests
@@ -57,6 +58,7 @@ for i in tqdm(topatch):
     while offset<limit * 2:
         url = f"{index_url}?sort=new&offset={offset}&limit={limit}"
         r = requests.get(url)
+        sleep(1)
         try:
             rjs = r.json()
             new = [p for p in rjs if p['id'] not in post_ids and pd.to_datetime(p['post_date'])<=latest]
@@ -70,6 +72,7 @@ for i in tqdm(topatch):
     for post in needed_index:
         url = f"{post_url}{post['slug']}"
         r = requests.get(url)
+        sleep(1)
         try:
             rjs = r.json()
             needed_posts.append(rjs)
