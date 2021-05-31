@@ -2,7 +2,6 @@
 import glob
 import json
 import pathlib
-import pathlib
 
 from tqdm import tqdm
 # %%
@@ -54,7 +53,7 @@ newsletters = get_newsletters(cat_path)
 # %%
 [i for i in newsletters if str(i['id']) in missing][18]
 # %%
-nid = "3910"
+nid = "45814"
 index_path = "../data/newsletters/" + nid + "/index.json"
 posts_path = "../data/newsletters/" + nid + "/posts.json"
 index = load_json(index_path)
@@ -113,4 +112,15 @@ len(index)
 len(posts)
 # %%
 index
+# %%
+counts = []
+for i in nl_dirs:
+    index_path = i + "index.json"
+    with open(index_path, "r", encoding="utf-8") as f:
+        index = json.load(f)
+    posts = len(index)
+    counts.append(posts)
+# %%
+import matplotlib.pyplot as plt
+plt.hist([i for i in counts if i<100],50)
 # %%
