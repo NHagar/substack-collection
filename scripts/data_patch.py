@@ -48,7 +48,7 @@ for i in tqdm(topatch):
     with open(post_path, "r", encoding="utf-8") as f:
         posts = json.load(f)
     # Get post IDs and dt of latest post
-    post_ids = [p['id'] for p in posts]
+    post_ids = [p['id'] for p in posts if "id" in p]
     latest = pd.to_datetime(index[0]['post_date'])
     # Collecting index
     offset = 0
@@ -61,12 +61,14 @@ for i in tqdm(topatch):
         sleep(1)
         try:
             rjs = r.json()
+            rjs  = [p for p in rjs if p['post_date'] is not None]
             new = [p for p in rjs if p['id'] not in post_ids and pd.to_datetime(p['post_date'])<=latest]
             needed_index.extend(new)
         except json.JSONDecodeError:
             pass
         offset += limit
-    print(f"Found new posts: {len(needed_index)}")
+    if len(needed_index)!=2:
+        print(f"Found {len(needed_index)} new posts")
     # Collecting posts
     needed_posts = []
     for post in needed_index:
@@ -97,3 +99,4 @@ for i in tqdm(topatch):
             json.dump(index, f)
     else:
         pass
+# %%
