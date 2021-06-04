@@ -17,6 +17,8 @@ import requests
 from tqdm import tqdm
 
 DATA_PATH = pathlib.Path("./data/")
+ERROR_INDEX_PATH = DATA_PATH / "errors_index.txt"
+ERROR_POSTS_PATH = DATA_PATH / "errors_posts.txt"
 
 
 class Newsletter:
@@ -30,14 +32,15 @@ class Newsletter:
     def __index_loop(self, start: int, chunk: int) -> requests.models.Response:
         """Helper function for looping index file requests
         """
-        url = f"{self.index_endpoint}?sort=new&offset={start}&limit={chunk}"
+        endpoint = f"{self.index_endpoint}?sort=new&offset={start}&limit={chunk}"
         call = requests.get(url)
         time.sleep(1)
         try:
             r = call.json()
         except json.JSONDecodeError:
             print("JSON error - newsletter posts unavailable")
-            r = []
+            with open(ERROR_INDEX_PATH, "a") as f:
+                    f.write(endpoint)
         
         return r
 
@@ -69,9 +72,9 @@ class Newsletter:
                 r = call.json()
                 posts.append(r)
             except json.JSONDecodeError as e:
-                print(e)
                 print("JSON error retrieving post")
-                pass
+                with open(ERROR_POSTS_PATH, "a") as f:
+                    f.write(endpoint)
 
         self.posts = posts
 
