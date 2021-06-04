@@ -10,6 +10,9 @@ import json
 import pathlib
 import time
 
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 import requests
 from tqdm import tqdm
 
@@ -19,9 +22,8 @@ DATA_PATH = pathlib.Path("./data/")
 class Newsletter:
     """Individual Substack newsletter, with methods to handle IO and collection
     """
-    def __init__(self, nlobj: dict):
-        self.id = nlobj['id']
-        self.host = nlobj['base_url']
+    def __init__(self, url: str):
+        self.host = url
         self.index_endpoint = f"{self.host}/api/v1/archive"
         self.post_endpoint = f"{self.host}/api/v1/posts/"
 
@@ -38,23 +40,9 @@ class Newsletter:
             r = []
         
         return r
-    
-    def create_and_check_dir(self, nl_path: pathlib.Path):
-        """Handles directory and file checks
-        """
-        obj_path = nl_path / str(self.id)
-        if not obj_path.is_dir():
-            obj_path.mkdir()
-        self.index_path = obj_path / "index.json"
-        self.has_index = self.index_path.is_file()
-        if self.has_index:
-            with open(self.index_path, "r", encoding="utf-8") as f:
-                self.index = json.load(f)
-        self.posts_path = obj_path / "posts.json"
-        self.has_posts = self.posts_path.is_file()
 
     def get_index(self):
-        """Grab the post index file
+        """Grab the post index
         """
         start = 0
         chunk = 12
@@ -87,20 +75,6 @@ class Newsletter:
 
         self.posts = posts
 
-
-def get_newsletters(dir: pathlib.Path) -> list:
-    """Load and concat newsletter files from a directory
-    """
-    nl_files = glob.glob(f"{dir}/*.json")
-    nls = []
-    for i in nl_files:
-        with open(i, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            nls.extend(data)
-
-    return nls
-
-
 if __name__ == "__main__":
     # Check for directory structure
     nl_path = DATA_PATH / "newsletters"
@@ -108,18 +82,16 @@ if __name__ == "__main__":
         nl_path.mkdir(parents=True)
     # Get newsletters
     cat_path = DATA_PATH / "categories"
-    newsletters = get_newsletters(cat_path)
-    for nl in tqdm(newsletters):
-        nl_object = Newsletter(nl)
-        # Create directory if missing
-        nl_object.create_and_check_dir(nl_path)
-        # Build index file if missing
-        if not nl_object.has_index:
-            nl_object.get_index()
-            with open(nl_object.index_path, "w", encoding="utf-8") as f:
-                json.dump(nl_object.index, f)
-        # Build post file if missing
-        if not nl_object.has_posts:
-            nl_object.get_posts()
-            with open(nl_object.posts_path, "w", encoding="utf-8") as f:
-                json.dump(nl_object.posts, f)
+    newsletters = pq.ParquetDataset(cat_path)
+    urls = newsletters.read(columns=['base_url']).column('base_url').topylist()
+    all_posts = []
+    for url in tqdm(urls):
+        nl_object = Newsletter(url)
+        nl_object.get_index()
+        nl_object.get_posts()
+        all_posts.extend(nl_object.posts)
+    pdf = pd.DataFrame(all_posts)
+    pdf.loc[:, 'post_date'] = pdf.post_date.apply(pd.to_datetime)
+    pdf.loc[:, 'year'] = pdf.post_date.apply(lambda x: x.year)
+    table = pa.Table.from_pandas(pdf)
+    pq.write_to_dataset(table, root_path="./data/newsletters", partition_cols=['year', 'hidden'])
