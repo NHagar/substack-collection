@@ -115,12 +115,19 @@ index
 # %%
 counts = []
 for i in nl_dirs:
-    index_path = i + "index.json"
+    index_path = i + "posts.json"
     with open(index_path, "r", encoding="utf-8") as f:
         index = json.load(f)
-    posts = len(index)
-    counts.append(posts)
+    has_body = ["body_html" in i for i in index]
+    try:
+        body_pct = sum(has_body)/len(has_body)
+        counts.append(body_pct)
+    except ZeroDivisionError:
+        pass
+    
 # %%
 import matplotlib.pyplot as plt
-plt.hist([i for i in counts if i<100],50)
+plt.hist(counts,10)
+# %%
+sorted(counts)
 # %%

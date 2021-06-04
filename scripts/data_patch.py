@@ -96,7 +96,7 @@ for i in tqdm(topatch):
     posts.extend(needed_posts)
     if len(posts)>postlen:
         with open(post_path, "w", encoding="utf-8") as f:
-            json.dump(index, f)
+            json.dump(posts, f)
     else:
         pass
 # %%
