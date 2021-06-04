@@ -33,14 +33,15 @@ class Newsletter:
         """Helper function for looping index file requests
         """
         endpoint = f"{self.index_endpoint}?sort=new&offset={start}&limit={chunk}"
-        call = requests.get(url)
+        call = requests.get(endpoint)
         time.sleep(1)
         try:
             r = call.json()
         except json.JSONDecodeError:
             print("JSON error - newsletter posts unavailable")
+            r = []
             with open(ERROR_INDEX_PATH, "a") as f:
-                    f.write(endpoint)
+                    f.write(f"\n{endpoint}")
         
         return r
 
@@ -57,12 +58,14 @@ class Newsletter:
             r = self.__index_loop(start, chunk)
             posts.extend(r)
         
+        posts = [i for i in posts if type(i)==dict and "slug" in i]
+
         self.index = posts
 
     def get_posts(self):
         """Grab individual post bodies
         """
-        slugs = [i['slug'] for i in self.index if type(i)==dict]
+        slugs = [i['slug'] for i in self.index]
         posts = []
         for s in slugs:
             endpoint = f"{self.post_endpoint}{s}"
@@ -71,10 +74,10 @@ class Newsletter:
             try:
                 r = call.json()
                 posts.append(r)
-            except json.JSONDecodeError as e:
+            except json.JSONDecodeError:
                 print("JSON error retrieving post")
                 with open(ERROR_POSTS_PATH, "a") as f:
-                    f.write(endpoint)
+                    f.write(f"\n{endpoint}")
 
         self.posts = posts
 
@@ -86,7 +89,7 @@ if __name__ == "__main__":
     # Get newsletters
     cat_path = DATA_PATH / "categories"
     newsletters = pq.ParquetDataset(cat_path)
-    urls = newsletters.read(columns=['base_url']).column('base_url').topylist()
+    urls = newsletters.read(columns=['base_url']).column('base_url').to_pylist()
     all_posts = []
     for url in tqdm(urls):
         nl_object = Newsletter(url)
