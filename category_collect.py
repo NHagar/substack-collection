@@ -9,6 +9,9 @@ import pathlib
 import time
 from typing import Tuple
 
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 import requests
 from tqdm import tqdm
 
@@ -87,7 +90,8 @@ if __name__ == "__main__":
         cl = CatList(cat)
         # Get list of publication objects
         publications = cl.iter_list()
+        pub_table = pd.DataFrame(publications)
         # Save publications to disk
-        obj_path = cat_path / f"{cat[0]}.json"
-        with open(obj_path, "w", encoding="utf-8") as f:
-            json.dump(publications, f)
+        pub_table = pa.Table.from_pandas(pub_table)
+        obj_path = cat_path / f"{cat[0]}.parquet"
+        pq.write_table(pub_table, obj_path)
