@@ -79,10 +79,11 @@ class Newsletter:
             time.sleep(1)
             try:
                 r = call.json()
-            except json.JSONDecodeError:
+                posts.append(r)
+            except json.JSONDecodeError as e:
+                print(e)
                 print("JSON error retrieving post")
-                r = {}
-            posts.append(r)
+                pass
 
         self.posts = posts
 
