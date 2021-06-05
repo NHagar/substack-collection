@@ -17,8 +17,7 @@ import requests
 from tqdm import tqdm
 
 DATA_PATH = pathlib.Path("./data/")
-ERROR_INDEX_PATH = DATA_PATH / "errors_index.txt"
-ERROR_POSTS_PATH = DATA_PATH / "errors_posts.txt"
+ERROR_PATH = DATA_PATH / "errors.txt"
 
 
 class Newsletter:
@@ -29,55 +28,52 @@ class Newsletter:
         self.index_endpoint = f"{self.host}/api/v1/archive"
         self.post_endpoint = f"{self.host}/api/v1/posts/"
 
-    def __index_loop(self, start: int, chunk: int) -> requests.models.Response:
-        """Helper function for looping index file requests
+    def __post_loop(self, slug: str) -> requests.models.Response:
+        """Helper function for looping post requests
         """
-        endpoint = f"{self.index_endpoint}?sort=new&offset={start}&limit={chunk}"
+        endpoint = f"{self.post_endpoint}{slug}"
         call = requests.get(endpoint)
         time.sleep(1)
         try:
             r = call.json()
         except json.JSONDecodeError:
-            print("JSON error - newsletter posts unavailable")
-            r = []
-            with open(ERROR_INDEX_PATH, "a") as f:
-                    f.write(f"\n{endpoint}")
+            print("JSON error - post unavailable")
+            r = {}
+            with open(ERROR_PATH, "a") as f:
+                    f.write(f"{endpoint}\n")
         
         return r
 
     def get_index(self):
-        """Grab the post index
+        """Grab the first post
         """
-        start = 0
-        chunk = 12
-        posts = []
-        r = self.__index_loop(start, chunk)
-        posts.extend(r)
-        while len(r)>0:
-            start += chunk
-            r = self.__index_loop(start, chunk)
-            posts.extend(r)
-        
-        posts = [i for i in posts if type(i)==dict and "slug" in i]
+        endpoint = f"{self.index_endpoint}?sort=new&offset=0&limit=1"
+        call = requests.get(endpoint)
+        time.sleep(1)
+        try:
+            r = call.json()
+        except json.JSONDecodeError:
+            print("JSON error - post unavailable")
+            r = [{}]
+            with open(ERROR_PATH, "a") as f:
+                    f.write(f"{endpoint}\n")
 
-        self.index = posts
+        self.index = r[0]
 
     def get_posts(self):
         """Grab individual post bodies
         """
-        slugs = [i['slug'] for i in self.index]
         posts = []
-        for s in slugs:
-            endpoint = f"{self.post_endpoint}{s}"
-            call = requests.get(endpoint)
-            time.sleep(1)
-            try:
-                r = call.json()
+        if len(self.index)>0:
+            first_slug = self.index['slug']
+            r = self.__post_loop(first_slug)
+            posts.append(r)
+            while r['prev_slug']:
+                slug = r['prev_slug']
+                r = self.__post_loop(slug)
                 posts.append(r)
-            except json.JSONDecodeError:
-                print("JSON error retrieving post")
-                with open(ERROR_POSTS_PATH, "a") as f:
-                    f.write(f"\n{endpoint}")
+        else:
+            pass
 
         self.posts = posts
 
@@ -99,5 +95,6 @@ if __name__ == "__main__":
     pdf = pd.DataFrame(all_posts)
     pdf.loc[:, 'post_date'] = pdf.post_date.apply(pd.to_datetime)
     pdf.loc[:, 'year'] = pdf.post_date.apply(lambda x: x.year)
+    pdf.loc[:, 'hidden'] = pdf.hidden.fillna(False)
     table = pa.Table.from_pandas(pdf)
     pq.write_to_dataset(table, root_path="./data/newsletters", partition_cols=['year', 'hidden'])
