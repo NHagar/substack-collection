@@ -3,3 +3,4 @@ node_modules/
 scratch.py
 .vscode/
 data/
+__pycache__/

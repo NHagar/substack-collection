@@ -5,13 +5,10 @@ Usage: newsletter_collect.py
 Runs data collection steps
 """
 
-import glob
 import json
 import pathlib
 import time
 
-import pandas as pd
-import pyarrow as pa
 import pyarrow.parquet as pq
 import requests
 from tqdm import tqdm
@@ -51,14 +48,14 @@ class Newsletter:
         call = requests.get(endpoint)
         time.sleep(1)
         try:
-            r = call.json()
+            r = call.json()[0]
         except json.JSONDecodeError:
             print("JSON error - post unavailable")
-            r = [{}]
+            r = {}
             with open(ERROR_PATH, "a") as f:
                     f.write(f"{endpoint}\n")
 
-        self.index = r[0]
+        self.index = r
 
     def get_posts(self):
         """Grab individual post bodies
@@ -86,15 +83,14 @@ if __name__ == "__main__":
     cat_path = DATA_PATH / "categories"
     newsletters = pq.ParquetDataset(cat_path)
     urls = newsletters.read(columns=['base_url']).column('base_url').to_pylist()
-    all_posts = []
     for url in tqdm(urls):
-        nl_object = Newsletter(url)
-        nl_object.get_index()
-        nl_object.get_posts()
-        all_posts.extend(nl_object.posts)
-    pdf = pd.DataFrame(all_posts)
-    pdf.loc[:, 'post_date'] = pdf.post_date.apply(pd.to_datetime)
-    pdf.loc[:, 'year'] = pdf.post_date.apply(lambda x: x.year)
-    pdf.loc[:, 'hidden'] = pdf.hidden.fillna(False)
-    table = pa.Table.from_pandas(pdf)
-    pq.write_to_dataset(table, root_path="./data/newsletters", partition_cols=['year', 'hidden'])
+        url_safe = "".join(x for x in url if x.isalnum())
+        url_path = nl_path / f"{url_safe}.json"
+        if not url_path.is_file():
+            nl_object = Newsletter(url)
+            nl_object.get_index()
+            nl_object.get_posts()
+            with open(url_path, "w", encoding="utf-8") as f:
+                json.dump(nl_object.posts, f)
+        else:
+            pass
