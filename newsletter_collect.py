@@ -24,6 +24,16 @@ class Newsletter:
         self.host = url
         self.index_endpoint = f"{self.host}/api/v1/archive"
         self.post_endpoint = f"{self.host}/api/v1/posts/"
+    
+    def __post_error(self, endpoint: str) -> dict:
+        """error handling block for post requests
+        """
+        print("JSON error - post unavailable")
+        r = {"prev_slug": None}
+        with open(ERROR_PATH, "a") as f:
+            f.write(f"{endpoint}\n")
+        
+        return r
 
     def __post_loop(self, slug: str) -> requests.models.Response:
         """Helper function for looping post requests
@@ -33,11 +43,10 @@ class Newsletter:
         time.sleep(1)
         try:
             r = call.json()
+            if "prev_slug" not in r:
+                r = self.__post_error(endpoint)
         except json.JSONDecodeError:
-            print("JSON error - post unavailable")
-            r = {}
-            with open(ERROR_PATH, "a") as f:
-                    f.write(f"{endpoint}\n")
+            r = self.__post_error(endpoint)
         
         return r
 
@@ -49,11 +58,10 @@ class Newsletter:
         time.sleep(1)
         try:
             r = call.json()[0]
+            if "slug" not in r:
+                r = self.__post_error(endpoint)
         except json.JSONDecodeError:
-            print("JSON error - post unavailable")
-            r = {}
-            with open(ERROR_PATH, "a") as f:
-                    f.write(f"{endpoint}\n")
+            r = self.__post_error(endpoint)
 
         self.index = r
 
@@ -61,7 +69,7 @@ class Newsletter:
         """Grab individual post bodies
         """
         posts = []
-        if len(self.index)>0:
+        if "slug" in self.index:
             first_slug = self.index['slug']
             r = self.__post_loop(first_slug)
             posts.append(r)
