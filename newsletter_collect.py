@@ -15,6 +15,9 @@ from tqdm import tqdm
 
 DATA_PATH = pathlib.Path("./data/")
 ERROR_PATH = DATA_PATH / "errors.txt"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36"
+}
 
 
 class Newsletter:
@@ -39,7 +42,7 @@ class Newsletter:
         """Helper function for looping post requests
         """
         endpoint = f"{self.post_endpoint}{slug}"
-        call = requests.get(endpoint)
+        call = requests.get(endpoint, headers=HEADERS)
         time.sleep(1)
         try:
             r = call.json()
@@ -54,7 +57,7 @@ class Newsletter:
         """Grab the first post
         """
         endpoint = f"{self.index_endpoint}?sort=new&offset=0&limit=1"
-        call = requests.get(endpoint)
+        call = requests.get(endpoint, headers=HEADERS)
         time.sleep(1)
         try:
             r = call.json()[0]
