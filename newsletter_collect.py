@@ -90,6 +90,16 @@ if __name__ == "__main__":
     nl_path = DATA_PATH / "newsletters"
     if not nl_path.is_dir():
         nl_path.mkdir(parents=True)
+    # Reset files that produced errors
+    if ERROR_PATH.is_file():
+        with open(ERROR_PATH, "r") as f:
+            errors = f.read().splitlines()
+        errors = [i.split("/api")[0] for i in errors]
+        errors = ["".join(x for x in url if x.isalnum()) for url in errors]
+        for e in errors:
+            error_path = nl_path / f"{e}.json"
+            error_path.unlink()
+        open(ERROR_PATH, 'w').close()
     # Get newsletters
     cat_path = DATA_PATH / "categories"
     newsletters = pq.ParquetDataset(cat_path)
