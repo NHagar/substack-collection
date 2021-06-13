@@ -9,6 +9,9 @@ import pathlib
 import time
 from typing import Tuple
 
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 import requests
 from tqdm import tqdm
 
@@ -82,12 +85,15 @@ if __name__ == "__main__":
     if not cat_path.is_dir():
         cat_path.mkdir(parents=True)
     # Iterate through categories
+    newsletters = []
     for cat in tqdm(CATEGORIES):
         # Instatiate category
         cl = CatList(cat)
         # Get list of publication objects
         publications = cl.iter_list()
-        # Save publications to disk
-        obj_path = cat_path / f"{cat[0]}.json"
-        with open(obj_path, "w", encoding="utf-8") as f:
-            json.dump(publications, f)
+        publications = [{**pub, "category": cl.cat_name} for pub in publications]
+        newsletters.extend(publications)
+    pub_table = pd.DataFrame(newsletters)
+    # Save publications to disk
+    pub_table = pa.Table.from_pandas(pub_table)
+    pq.write_to_dataset(pub_table, root_path="./data/categories", partition_cols=['category'])

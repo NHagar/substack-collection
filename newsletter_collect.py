@@ -5,121 +5,113 @@ Usage: newsletter_collect.py
 Runs data collection steps
 """
 
-import glob
 import json
 import pathlib
 import time
 
+import pyarrow.parquet as pq
 import requests
 from tqdm import tqdm
 
 DATA_PATH = pathlib.Path("./data/")
+ERROR_PATH = DATA_PATH / "errors.txt"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36"
+}
 
 
 class Newsletter:
     """Individual Substack newsletter, with methods to handle IO and collection
     """
-    def __init__(self, nlobj: dict):
-        self.id = nlobj['id']
-        self.host = nlobj['base_url']
+    def __init__(self, url: str):
+        self.host = url
         self.index_endpoint = f"{self.host}/api/v1/archive"
         self.post_endpoint = f"{self.host}/api/v1/posts/"
-
-    def __index_loop(self, start: int, chunk: int) -> requests.models.Response:
-        """Helper function for looping index file requests
+    
+    def __post_error(self, endpoint: str) -> dict:
+        """error handling block for post requests
         """
-        url = f"{self.index_endpoint}?sort=new&offset={start}&limit={chunk}"
-        call = requests.get(url)
+        print("JSON error - post unavailable")
+        r = {"prev_slug": None}
+        with open(ERROR_PATH, "a") as f:
+            f.write(f"{endpoint}\n")
+        
+        return r
+
+    def __post_loop(self, slug: str) -> requests.models.Response:
+        """Helper function for looping post requests
+        """
+        endpoint = f"{self.post_endpoint}{slug}"
+        call = requests.get(endpoint, headers=HEADERS)
         time.sleep(1)
         try:
             r = call.json()
+            if "prev_slug" not in r:
+                r = self.__post_error(endpoint)
         except json.JSONDecodeError:
-            print("JSON error - newsletter posts unavailable")
-            r = []
+            r = self.__post_error(endpoint)
         
         return r
-    
-    def create_and_check_dir(self, nl_path: pathlib.Path):
-        """Handles directory and file checks
-        """
-        obj_path = nl_path / str(self.id)
-        if not obj_path.is_dir():
-            obj_path.mkdir()
-        self.index_path = obj_path / "index.json"
-        self.has_index = self.index_path.is_file()
-        if self.has_index:
-            with open(self.index_path, "r", encoding="utf-8") as f:
-                self.index = json.load(f)
-        self.posts_path = obj_path / "posts.json"
-        self.has_posts = self.posts_path.is_file()
 
     def get_index(self):
-        """Grab the post index file
+        """Grab the first post
         """
-        start = 0
-        chunk = 12
-        posts = []
-        r = self.__index_loop(start, chunk)
-        posts.extend(r)
-        while len(r)>0:
-            start += chunk
-            r = self.__index_loop(start, chunk)
-            posts.extend(r)
-        
-        self.index = posts
+        endpoint = f"{self.index_endpoint}?sort=new&offset=0&limit=1"
+        call = requests.get(endpoint, headers=HEADERS)
+        time.sleep(1)
+        try:
+            r = call.json()[0]
+            if "slug" not in r:
+                r = self.__post_error(endpoint)
+        except json.JSONDecodeError:
+            r = self.__post_error(endpoint)
+
+        self.index = r
 
     def get_posts(self):
         """Grab individual post bodies
         """
-        slugs = [i['slug'] for i in self.index if type(i)==dict]
         posts = []
-        for s in slugs:
-            endpoint = f"{self.post_endpoint}{s}"
-            call = requests.get(endpoint)
-            time.sleep(1)
-            try:
-                r = call.json()
+        if "slug" in self.index:
+            first_slug = self.index['slug']
+            r = self.__post_loop(first_slug)
+            posts.append(r)
+            while r['prev_slug']:
+                slug = r['prev_slug']
+                r = self.__post_loop(slug)
                 posts.append(r)
-            except json.JSONDecodeError as e:
-                print(e)
-                print("JSON error retrieving post")
-                pass
+        else:
+            pass
 
         self.posts = posts
-
-
-def get_newsletters(dir: pathlib.Path) -> list:
-    """Load and concat newsletter files from a directory
-    """
-    nl_files = glob.glob(f"{dir}/*.json")
-    nls = []
-    for i in nl_files:
-        with open(i, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            nls.extend(data)
-
-    return nls
-
 
 if __name__ == "__main__":
     # Check for directory structure
     nl_path = DATA_PATH / "newsletters"
     if not nl_path.is_dir():
         nl_path.mkdir(parents=True)
+    # Reset files that produced errors
+    if ERROR_PATH.is_file():
+        with open(ERROR_PATH, "r") as f:
+            errors = f.read().splitlines()
+        errors = [i.split("/api")[0] for i in errors]
+        errors = ["".join(x for x in url if x.isalnum()) for url in errors]
+        for e in errors:
+            error_path = nl_path / f"{e}.json"
+            error_path.unlink()
+        open(ERROR_PATH, 'w').close()
     # Get newsletters
     cat_path = DATA_PATH / "categories"
-    newsletters = get_newsletters(cat_path)
-    for nl in tqdm(newsletters):
-        nl_object = Newsletter(nl)
-        # Create directory if missing
-        nl_object.create_and_check_dir(nl_path)
-        # Build index file if missing
-        if not nl_object.has_index:
+    newsletters = pq.ParquetDataset(cat_path)
+    urls = newsletters.read(columns=['base_url']).column('base_url').to_pylist()
+    for url in tqdm(urls):
+        url_safe = "".join(x for x in url if x.isalnum())
+        url_path = nl_path / f"{url_safe}.json"
+        if not url_path.is_file():
+            nl_object = Newsletter(url)
             nl_object.get_index()
-            with open(nl_object.index_path, "w", encoding="utf-8") as f:
-                json.dump(nl_object.index, f)
-        # Build post file if missing
-        if not nl_object.has_posts:
             nl_object.get_posts()
-            with open(nl_object.posts_path, "w", encoding="utf-8") as f:
+            with open(url_path, "w", encoding="utf-8") as f:
                 json.dump(nl_object.posts, f)
+        else:
+            pass
