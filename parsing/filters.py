@@ -94,6 +94,3 @@ def expand_urls(urls: list[urllib.parse.ParseResult],
             json.dump(lookups, f)
     
     return expanded_urls
-
-# Self-links
-# Amazon - affiliate links?
