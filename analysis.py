@@ -49,11 +49,21 @@ df.loc[:, "domains"] = df.links_expanded.progress_apply(lambda x: [i.netloc for 
 
 # %%
 # Link distribution
-## How common are self promotion links, vs. true outbound links?
 raw_count = links.count_domains_raw(df.domains)
 nl_count = links.count_domains_unique(df)
 # %%
 np.log(raw_count).plot(kind="hist")
 # %%
 np.log(nl_count).plot(kind="hist")
+# %%
+links.count_domains_raw(df[df.publication_id==25649].domains)
+
+# %%
+import importlib
+importlib.reload(links)
+
+# %%
+marked_links = links.mark_internal_external(df)
+# %%
+links.count_domains_raw(marked_links[~marked_links.is_self].domains)
 # %%

@@ -3,8 +3,7 @@ import pandas as pd
 def count_domains_raw(hosts: pd.Series) -> pd.Series:
     """return raw domain frequencies across all posts
     """
-    hosts_flat = [i for l in hosts for i in l]
-    hosts_flat = pd.Series(hosts_flat)
+    hosts_flat = hosts.explode()
     host_counts = hosts_flat.value_counts()
 
     return host_counts
@@ -18,3 +17,13 @@ def count_domains_unique(df: pd.DataFrame) -> pd.DataFrame:
     counts = counts.publication_id
 
     return counts
+
+def mark_internal_external(df: pd.DataFrame) -> pd.DataFrame:
+    """Mark whether URLs come from the same domain as the newsletter
+    (i.e., are self-promotion/linkbacks)
+    """
+    exploded = df[['canonical_url', 'domains']].explode('domains')
+    exploded = exploded[exploded.domains.notna()]
+    exploded.loc[:, 'is_self'] = exploded.apply(lambda x: x.domains in x.canonical_url, axis=1)
+
+    return exploded
