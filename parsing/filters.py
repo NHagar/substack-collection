@@ -22,8 +22,12 @@ def filter_newsletters(df: pd.DataFrame,
     """
     # Filter newsletters by activity
     if remove_inactive:
-        most_recent = df.groupby("publication_id").post_date.max()
-        active = most_recent[(most_recent.dt.year==2021) & (most_recent.dt.month>4)]
+        g = df.groupby("publication_id").agg({"id": "count",
+                                        "post_date": ["max", "min"]})
+
+        g.loc[:, 'days'] = (g.post_date['max'] - g.post_date['min']).apply(lambda x: x.days) + 1
+        g.loc[:, 'cadence'] = g.days / g.id['count']
+        active = g[(g.cadence<=30) & (g.id['count']>1)]
         df = df[df.publication_id.isin(active.index)]
     if remove_nolinks:
         # Filter to only posts that have links
