@@ -18,6 +18,9 @@ def count_domains_unique(df: pd.DataFrame) -> pd.DataFrame:
 
     return counts
 
+def count_per_domain(df: pd.DataFrame, normalize: bool = True) -> pd.DataFrame:
+    ""
+
 def mark_internal_external(df: pd.DataFrame) -> pd.DataFrame:
     """Mark whether URLs come from the same domain as the newsletter
     (i.e., are self-promotion/linkbacks)

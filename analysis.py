@@ -45,3 +45,22 @@ nl_count = links.count_domains_unique(df)
 marked_links = links.mark_internal_external(df)
 external_count = links.count_domains_raw(marked_links[~marked_links.is_self].domains)
 # %%
+# Cluster analysis
+# Preprocessing
+# Per-NL vector of domains
+# Domains weighted to frequency (# of newsletters / total issues)
+e = df[['domains', 'publication_id', 'id']].explode("domains")
+e = e[e.domains.notna()].drop_duplicates()
+# %%
+counts = e.groupby(["publication_id", "domains"]).count()
+# %%
+counts_vectors = counts.reset_index().pivot(index="publication_id", 
+                           columns="domains",
+                           values="id")
+# %%
+nl_counts = df.groupby("publication_id").count().id
+# %%
+joined = counts_vectors.join(nl_counts)
+# %%
+joined.iloc[:, :-1].div(joined.id, axis=0)
+# %%
