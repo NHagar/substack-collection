@@ -57,8 +57,8 @@ def get_and_parse_urls(html: BeautifulSoup) -> "list[str]":
     return hrefs
 
 
-def expand_urls(urls: list[urllib.parse.ParseResult],
-                domains: list[str]) -> list[urllib.parse.ParseResult]:
+def expand_urls(urls: "list[urllib.parse.ParseResult]",
+                domains: "list[str]") -> "list[urllib.parse.ParseResult]":
     """Attempts to expand shortened urls from selected domains
     """
     # Instantiate requests session
