@@ -36,13 +36,18 @@ shortened_domains = [
 df.loc[:, "links_expanded"] = df.links.progress_apply(filters.expand_urls, 
                                              args=(shortened_domains,))
 # Parse out domains
-df.loc[:, "domains"] = df.links_expanded.progress_apply(lambda x: [i.netloc for i in x if i.netloc!=""])
+df.loc[:, "links_expanded"] = df.links_expanded.progress_apply(lambda x: [i for i in x if i.netloc!=""])
+df.loc[:, "domains"] = df.links_expanded.progress_apply(lambda x: [i.netloc for i in x])
+
+# %%
+# Get number of posts per newsletter
+nl_counts = df.groupby("publication_id").count().id
 
 # %%
 # Link distribution counts
 raw_count = links.count_domains_raw(df.domains)
 nl_count = links.count_domains_unique(df)
-marked_links = links.mark_internal_external(df)
+marked_links = links.mark_link_classes(df)
 external_count = links.count_domains_raw(marked_links[~marked_links.is_self].domains)
 # %%
 # Cluster analysis
@@ -63,12 +68,9 @@ counts_vectors = counts.reset_index().pivot(index="publication_id",
 
 # %%
 # Remove any extremely sparse domains
-repeat_domains = nl_count[nl_count>1].index.tolist()
+repeat_domains = nl_count[nl_count > df.publication_id.nunique() * 0.01].index.tolist()
 counts_vectors = counts_vectors[repeat_domains]
 
-# %%
-# Get number of posts per newsletter
-nl_counts = df.groupby("publication_id").count().id
 # %%
 # Join vectors to counts
 joined = counts_vectors.join(nl_counts)
@@ -78,12 +80,14 @@ vectors_normalized = joined.iloc[:, :-1].div(joined.id, axis=0)
 # %%
 # Replace NAs with 0s
 vectors_normalized = vectors_normalized.fillna(0)
-# %%
-from collections import Counter
 
-from sklearn.cluster import DBSCAN
 # %%
-clust = DBSCAN(eps=0.2, min_samples=2).fit(vectors_normalized)
+from sklearn.decomposition import PCA
+
 # %%
-Counter(clust.labels_)
+pca = PCA()
+# %%
+pca.fit(vectors_normalized)
+# %%
+pca.explained_variance_ratio_
 # %%
