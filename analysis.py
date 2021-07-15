@@ -44,10 +44,13 @@ df.loc[:, "domains"] = df.links_expanded.progress_apply(lambda x: [i.netloc for 
 nl_counts = df.groupby("publication_id").count().id
 
 # %%
+# Flag internal and repeated links
+marked_links = links.mark_link_classes(df, nl_counts)
+
+# %%
 # Link distribution counts
 raw_count = links.count_domains_raw(df.domains)
 nl_count = links.count_domains_unique(df)
-marked_links = links.mark_link_classes(df)
 external_count = links.count_domains_raw(marked_links[~marked_links.is_self].domains)
 # %%
 # Cluster analysis
