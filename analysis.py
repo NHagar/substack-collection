@@ -1,4 +1,5 @@
 # %%
+from numpy import unique
 import pandas as pd
 from tqdm import tqdm
 
@@ -46,12 +47,18 @@ nl_counts = df.groupby("publication_id").count().id
 # %%
 # Flag internal and repeated links
 marked_links = links.mark_link_classes(df, nl_counts)
+true_links = marked_links[(~marked_links.is_repeat) & (~marked_links.is_self)]
 
 # %%
 # Link distribution counts
 raw_count = links.count_domains_raw(df.domains)
-nl_count = links.count_domains_unique(df)
-external_count = links.count_domains_raw(marked_links[~marked_links.is_self].domains)
+unique_count = links.count_domains_unique(df)
+external_count = links.count_domains_raw(true_links.domains)
+
+# %%
+pub_count = true_links[['str_rep', 'publication_id']].groupby("str_rep").nunique()
+(pub_count[pub_count.publication_id>1] / len(set(df.publication_id))).publication_id.sort_values()
+
 # %%
 # Cluster analysis
 # Preprocessing
@@ -71,7 +78,7 @@ counts_vectors = counts.reset_index().pivot(index="publication_id",
 
 # %%
 # Remove any extremely sparse domains
-repeat_domains = nl_count[nl_count > df.publication_id.nunique() * 0.01].index.tolist()
+repeat_domains = unique_count[unique_count > df.publication_id.nunique() * 0.01].index.tolist()
 counts_vectors = counts_vectors[repeat_domains]
 
 # %%
