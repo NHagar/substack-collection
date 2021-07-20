@@ -1,5 +1,4 @@
 # %%
-from numpy import unique
 import pandas as pd
 from tqdm import tqdm
 
@@ -54,10 +53,27 @@ true_links = marked_links[(~marked_links.is_repeat) & (~marked_links.is_self)]
 raw_count = links.count_domains_raw(df.domains)
 unique_count = links.count_domains_unique(df)
 external_count = links.count_domains_raw(true_links.domains)
+external_unique_count = links.count_domains_unique(true_links)
+
+# %%
+# Link prevalence
+true_links = pd.merge(true_links,
+         external_unique_count,
+         how="left",
+         left_on="domains",
+         right_index=True)
+
+# %%
+correlations = true_links.groupby(['publication_id_x', "id"]) \
+    .agg({"domains": "count", "publication_id_y": "median"}) \
+        .reset_index()[['publication_id_x', "domains", "publication_id_y"]] \
+            .groupby("publication_id_x").corr().unstack().iloc[:,1]
+
+# %%
+correlations.hist()
 
 # %%
 pub_count = true_links[['str_rep', 'publication_id']].groupby("str_rep").nunique()
-(pub_count[pub_count.publication_id>1] / len(set(df.publication_id))).publication_id.sort_values()
 
 # %%
 # Cluster analysis
