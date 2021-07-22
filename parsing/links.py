@@ -5,6 +5,7 @@ def count_domains_raw(hosts: pd.Series) -> pd.Series:
     """
     hosts_flat = hosts.explode()
     host_counts = hosts_flat.value_counts()
+    host_counts = host_counts / host_counts.sum()
 
     return host_counts
 

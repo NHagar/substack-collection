@@ -1,5 +1,6 @@
 # %%
 import pandas as pd
+from scipy.stats import entropy
 from tqdm import tqdm
 
 from parsing import filters, links
@@ -49,6 +50,11 @@ marked_links = links.mark_link_classes(df, nl_counts)
 true_links = marked_links[(~marked_links.is_repeat) & (~marked_links.is_self)]
 
 # %%
+import importlib
+importlib.reload(links)
+
+
+# %%
 # Link distribution counts
 raw_count = links.count_domains_raw(df.domains)
 unique_count = links.count_domains_unique(df)
@@ -58,19 +64,33 @@ external_unique_count = links.count_domains_unique(true_links)
 # %%
 # Link prevalence
 true_links = pd.merge(true_links,
-         external_unique_count,
+         external_count,
          how="left",
          left_on="domains",
          right_index=True)
 
 # %%
-correlations = true_links.groupby(['publication_id_x', "id"]) \
-    .agg({"domains": "count", "publication_id_y": "median"}) \
-        .reset_index()[['publication_id_x', "domains", "publication_id_y"]] \
-            .groupby("publication_id_x").corr().unstack().iloc[:,1]
+correlations = true_links.groupby(['publication_id', "id"]) \
+    .agg({"domains_x": "count", "domains_y": "median"}) \
+        .reset_index()[['publication_id', "domains_x", "domains_y"]] \
+            .groupby("publication_id").corr().unstack().iloc[:,1]
 
 # %%
 correlations.hist()
+
+# %%
+# Link stability
+test = true_links[true_links.publication_id==242615]
+test_sorted = test.groupby("id").apply(lambda x: x.sort_values(by="domains_y", ascending=False))
+test_sorted = test_sorted.reset_index(drop=True)
+test_sorted.loc[:, "slot"] = test_sorted.groupby("id").cumcount()
+test_sorted.groupby("slot").agg({"domains_y": [entropy, "count"]})
+
+# %%
+t = true_links.groupby(["publication_id", "id"]).apply(lambda x: x.sort_values(by="domains_y", ascending=False)) \
+        .reset_index(drop=True)
+t.loc[:, "slot"] = t.groupby(["publication_id", "id"]).cumcount()
+t.groupby("slot").agg({"domains_y": [entropy, "count"]})
 
 # %%
 pub_count = true_links[['str_rep', 'publication_id']].groupby("str_rep").nunique()
