@@ -50,11 +50,6 @@ marked_links = links.mark_link_classes(df, nl_counts)
 true_links = marked_links[(~marked_links.is_repeat) & (~marked_links.is_self)]
 
 # %%
-import importlib
-importlib.reload(links)
-
-
-# %%
 # Link distribution counts
 raw_count = links.count_domains_raw(df.domains)
 unique_count = links.count_domains_unique(df)
@@ -70,70 +65,28 @@ true_links = pd.merge(true_links,
          right_index=True)
 
 # %%
+# Newsletter slot variation
+counts = true_links.groupby(["publication_id", "id"]).str_rep.count().reset_index()
+counts.groupby("publication_id").str_rep.mean().hist()
+counts.groupby("publication_id").str_rep.std().describe()
+
+# %%
+# Number of available slots, domain prominence
 correlations = true_links.groupby(['publication_id', "id"]) \
     .agg({"domains_x": "count", "domains_y": "median"}) \
         .reset_index()[['publication_id', "domains_x", "domains_y"]] \
             .groupby("publication_id").corr().unstack().iloc[:,1]
 
-# %%
 correlations.hist()
-
-# %%
-# Link stability
-test = true_links[true_links.publication_id==242615]
-test_sorted = test.groupby("id").apply(lambda x: x.sort_values(by="domains_y", ascending=False))
-test_sorted = test_sorted.reset_index(drop=True)
-test_sorted.loc[:, "slot"] = test_sorted.groupby("id").cumcount()
-test_sorted.groupby("slot").agg({"domains_y": [entropy, "count"]})
 
 # %%
 t = true_links.groupby(["publication_id", "id"]).apply(lambda x: x.sort_values(by="domains_y", ascending=False)) \
         .reset_index(drop=True)
 t.loc[:, "slot"] = t.groupby(["publication_id", "id"]).cumcount()
-t.groupby("slot").agg({"domains_y": [entropy, "count"]})
+t.groupby(["publication_id", "slot"]).agg({"domains_y": [entropy, "count"]})
+
+
+
 
 # %%
-pub_count = true_links[['str_rep', 'publication_id']].groupby("str_rep").nunique()
-
-# %%
-# Cluster analysis
-# Preprocessing
-# Per-NL vector of domains
-# Domains weighted to frequency (# of newsletters / total issues)
-# Get unique domains per post, per newsletter
-e = df[['domains', 'publication_id', 'id']].explode("domains")
-e = e[e.domains.notna()].drop_duplicates()
-# %%
-# Count the number of posts each domain appears in per newsletter
-counts = e.groupby(["publication_id", "domains"]).count()
-# %%
-# Pivot wide, one vector per newsletter
-counts_vectors = counts.reset_index().pivot(index="publication_id", 
-                           columns="domains",
-                           values="id")
-
-# %%
-# Remove any extremely sparse domains
-repeat_domains = unique_count[unique_count > df.publication_id.nunique() * 0.01].index.tolist()
-counts_vectors = counts_vectors[repeat_domains]
-
-# %%
-# Join vectors to counts
-joined = counts_vectors.join(nl_counts)
-# %%
-# Divide every column by the total post count to generate percentage
-vectors_normalized = joined.iloc[:, :-1].div(joined.id, axis=0)
-# %%
-# Replace NAs with 0s
-vectors_normalized = vectors_normalized.fillna(0)
-
-# %%
-from sklearn.decomposition import PCA
-
-# %%
-pca = PCA()
-# %%
-pca.fit(vectors_normalized)
-# %%
-pca.explained_variance_ratio_
-# %%
+# Dissenting newsletters
