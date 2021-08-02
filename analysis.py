@@ -80,11 +80,29 @@ correlations = true_links.groupby(['publication_id', "id"]) \
 correlations.hist()
 
 # %%
+# Entropy
+# Link slot probabilities
+pub_count = df.groupby("publication_id").count().id.rename("posts")
+
+# %%
 t = true_links.groupby(["publication_id", "id"]).apply(lambda x: x.sort_values(by="domains_y", ascending=False)) \
         .reset_index(drop=True)
 t.loc[:, "slot"] = t.groupby(["publication_id", "id"]).cumcount()
-t.groupby(["publication_id", "slot"]).agg({"domains_y": [entropy, "count"]})
 
+# %%
+slot_counts = t.groupby(["publication_id", "slot"]).count().id
+slot_counts = pd.merge(slot_counts.reset_index(), pub_count.reset_index(), on="publication_id") \
+    .set_index(["publication_id", "slot"])
+slot_counts.loc[:, "pct"] = slot_counts.id / slot_counts.posts
+
+# %%
+# Domain slot probabilities
+domain_counts = t.groupby(["publication_id", "slot", "domains_x"]).count().str_rep
+domain_counts = pd.merge(slot_counts, domain_counts, left_index=True, right_index=True)
+domain_counts = domain_counts.drop(columns=["posts", "pct"])
+domain_counts.loc[:, "pct"] = domain_counts.str_rep / domain_counts.id
+
+# %%
 
 
 
