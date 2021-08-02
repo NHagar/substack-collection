@@ -94,7 +94,6 @@ slot_counts = t.groupby(["publication_id", "slot"]).count().id
 slot_counts = pd.merge(slot_counts.reset_index(), pub_count.reset_index(), on="publication_id") \
     .set_index(["publication_id", "slot"])
 slot_counts.loc[:, "pct"] = slot_counts.id / slot_counts.posts
-
 # %%
 # Domain slot probabilities
 domain_counts = t.groupby(["publication_id", "slot", "domains_x"]).count().str_rep
@@ -102,9 +101,17 @@ domain_counts = pd.merge(slot_counts, domain_counts, left_index=True, right_inde
 domain_counts = domain_counts.drop(columns=["posts", "pct"])
 domain_counts.loc[:, "pct"] = domain_counts.str_rep / domain_counts.id
 
+domain_counts = domain_counts.reset_index().drop(columns=["id", "str_rep"])
+slot_counts = slot_counts.reset_index().drop(columns=["id", "posts"])
 # %%
+# Conversion to conditional probabilities
+proba_table = pd.merge(domain_counts, slot_counts, on=["publication_id", "slot"])
+proba_table = proba_table.rename(columns={"pct_x": "proba_domain", "pct_y": "proba_slot"})
+proba_table.loc[:, "probability"] = proba_table.proba_domain * proba_table.proba_slot
 
-
-
+# %%
+# Entropy calculation
+ent = proba_table.groupby(["publication_id", "slot"]).agg({"probability": entropy}).reset_index()
+ent[ent.slot<10].groupby("slot").mean().probability
 # %%
 # Dissenting newsletters
