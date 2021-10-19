@@ -53,31 +53,30 @@ posts.loc[:, "domains"] = posts.links_expanded.progress_apply(lambda x: [i.netlo
 # %%
 # Join posts to classifications
 df = posts.merge(clf, left_on="publication_id", right_on="id")
+df = df.drop(columns=["id_y"])
+df = df.rename(columns={"id_x": "post_id"})
 
 # TODO: Roll everything up into an analysis pipeline
 
 # %%
-# Get number of posts per newsletter
-nl_counts = df.groupby("publication_id").count().id
-
+# Calculate overall descriptive counts - 
+# posts per newsletter, total domain link frequencies,
+# and unique newsletter counts
+desc_overall = links.DescriptiveStats(df)
 
 # %%
 # Flag internal and repeated links
-marked_links = links.mark_link_classes(df, nl_counts)
+marked_links = links.mark_link_classes(df, desc_overall.posts_per_nl)
 true_links = marked_links[(~marked_links.is_repeat) & (~marked_links.is_self)]
 
-
 # %%
-# Link distribution counts
-raw_count = links.count_domains_raw(df.domains)
-unique_count = links.count_domains_unique(df)
-external_count = links.count_domains_raw(true_links.domains)
-external_unique_count = links.count_domains_unique(true_links)
+# Calculate same counts for external links only
+desc_external = links.DescriptiveStats(true_links)
 
 # %%
 # Link prevalence
 true_links = pd.merge(true_links,
-         external_count,
+         desc_external.raw_freq,
          how="left",
          left_on="domains",
          right_index=True)
@@ -134,3 +133,9 @@ ent[ent.slot<10].groupby("slot").mean().probability
 # %%
 # Dissenting newsletters
 true_links.groupby("publication_id").mean().domains_y.hist()
+
+
+# %%
+import importlib
+importlib.reload(links)
+# %%
