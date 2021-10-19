@@ -115,3 +115,5 @@ ent = proba_table.groupby(["publication_id", "slot"]).agg({"probability": entrop
 ent[ent.slot<10].groupby("slot").mean().probability
 # %%
 # Dissenting newsletters
+true_links.groupby("publication_id").mean().domains_y.hist()
+# %%
