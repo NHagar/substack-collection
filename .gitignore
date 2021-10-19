@@ -7,3 +7,5 @@ __pycache__/
 .Rproj.user
 .Rhistory
 _targets/
+scratch.R
+*.pdf
