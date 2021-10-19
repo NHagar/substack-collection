@@ -1,6 +1,7 @@
 # %%
 import pathlib
 
+import pandas as pd
 from tqdm import tqdm
 
 from analysis import links
@@ -49,20 +50,21 @@ posts.loc[:, "links_expanded"] = posts.links.progress_apply(filters.expand_urls,
 posts.loc[:, "links_expanded"] = posts.links_expanded.progress_apply(lambda x: [i for i in x if i.netloc!=""])
 posts.loc[:, "domains"] = posts.links_expanded.progress_apply(lambda x: [i.netloc for i in x])
 
+# %%
+# Join posts to classifications
+df = posts.merge(clf, left_on="publication_id", right_on="id")
 
+# TODO: Roll everything up into an analysis pipeline
 
-
+# %%
+# Get number of posts per newsletter
+nl_counts = df.groupby("publication_id").count().id
 
 
 # %%
 # Flag internal and repeated links
 marked_links = links.mark_link_classes(df, nl_counts)
 true_links = marked_links[(~marked_links.is_repeat) & (~marked_links.is_self)]
-
-
-# %%
-# Get number of posts per newsletter
-nl_counts = df.groupby("publication_id").count().id
 
 
 # %%
