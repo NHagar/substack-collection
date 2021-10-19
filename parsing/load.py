@@ -6,7 +6,7 @@ def clean(cat):
     return c
 
 def load_clf(path):
-    clf = pd.read_csv("./data/newsletters_classified.csv")
+    clf = pd.read_csv(path)
     clf = clf[clf['id'].notna()]
     clf.loc[:, "cat"] = clf['Category 1'].apply(clean)
 
