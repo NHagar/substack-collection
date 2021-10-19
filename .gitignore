@@ -4,3 +4,4 @@ scratch.py
 .vscode/
 data/
 __pycache__/
+.Rproj.user
