@@ -6,3 +6,4 @@ data/
 __pycache__/
 .Rproj.user
 .Rhistory
+_targets/
