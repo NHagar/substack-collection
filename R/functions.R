@@ -96,3 +96,51 @@ cum_pct <- function(df) {
   
   return(p)
 }
+
+tsne_prepro <- function(df, threshold_val) {
+  # Filter and format data for TSNE analysis
+  threshold <- df %>% 
+    summarize(n_distinct(publication_id)) %>% 
+    pull() * threshold_val
+  threshold <- round(threshold)
+  
+  pub_counts <- df %>% 
+    group_by(domain) %>% 
+    summarize(pubs=n_distinct(publication_id)) %>% 
+    filter(pubs>=threshold)
+  
+  tsne_data <- left_join(pub_counts %>% select(-pubs),
+                         df) %>% 
+    filter(has_link) %>% 
+    mutate(domain=ifelse((is_internal) | (is_repeat),
+                         "INT",
+                         domain)) %>% 
+    group_by(publication_id, domain) %>% 
+    summarize(count=n()) %>% 
+    pivot_wider(names_from=domain, values_from=count) %>% 
+    ungroup() %>% 
+    replace(is.na(.), 0)
+  
+  return(tsne_data)
+}
+
+get_opt_pc <- function(df) {
+  df <- df %>% select(-publication_id)
+  # https://towardsdatascience.com/how-to-tune-hyperparameters-of-tsne-7c0596a18868
+  pc <- prcomp(log1p(df), center=T, scale=T)
+  expl_var <- pc$sdev^2/sum(pc$sdev^2)
+  
+  N_perm <- 10
+  expl_var_perm <- matrix(NA, ncol = length(pc$sdev), nrow = N_perm)
+  for(k in 1:N_perm)
+  {
+    expr_perm <- apply(log1p(df),2,sample)
+    PC_perm <- prcomp(expr_perm, center=TRUE, scale=TRUE)
+    expl_var_perm[k,] <- PC_perm$sdev^2/sum(PC_perm$sdev^2)
+  }
+  
+  pval <- apply(t(expl_var_perm) >= expl_var,1,sum) / N_perm
+  optPC<-head(which(pval>=0.05),1)-1
+  
+  return(optPC)
+}
