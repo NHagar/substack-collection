@@ -56,13 +56,22 @@ posts.loc[:, "domains"] = posts.links_expanded.progress_apply(lambda x: [i.netlo
 df = posts.merge(clf, left_on="publication_id", right_on="id")
 df = df.drop(columns=["id_y"])
 df = df.rename(columns={"id_x": "post_id"})
+df = df.explode("links_expanded")
+df.loc[:, "str_rep"] = df.links_expanded.apply(links.get_str_rep)
+df.loc[:, "domain"] = df.links_expanded.apply(links.get_domain)
 # Save processed dataframe
 df = df.drop(columns=["body_html", 
                       "Unnamed: 0", 
                       "stripe_user_id", 
                       "stripe_country", 
-                      "stripe_publishable_key"])
-df.to_csv(out_path)
+                      "stripe_publishable_key",
+                      "parsed",
+                      "links",
+                      "links_expanded",
+                      "domains"])
+
+# %%
+df.to_csv(out_path, index=False)
 
 
 # %%

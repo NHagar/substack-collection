@@ -5,3 +5,4 @@ scratch.py
 data/
 __pycache__/
 .Rproj.user
+.Rhistory

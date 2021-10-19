@@ -25,6 +25,22 @@ class DescriptiveStats:
 
         return counts
 
+def get_str_rep(url):
+    if type(url)==float:
+        str_rep = None
+    else:
+        str_rep = url.geturl()
+    
+    return str_rep
+
+def get_domain(url):
+    if type(url)==float:
+        domain = None
+    else:
+        domain = url.netloc
+    
+    return domain
+
 def mark_link_classes(df: pd.DataFrame, 
                       nl_counts: pd.DataFrame,
                       mark_internal: bool = True, 
