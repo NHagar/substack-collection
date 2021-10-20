@@ -104,5 +104,19 @@ list(
     tsne_results %>% 
       ggplot(aes(V1, V2, color=as.factor(cluster))) + 
       geom_point()
+  ),
+  tar_target(
+    top_by_cluster,
+    left_join(
+      tsne_results %>% select(-V1, -V2),
+      journalists
+    ) %>%
+      filter(!is.na(domain)) %>% 
+      group_by(cluster, domain) %>% 
+      dplyr::summarize(posts=n_distinct(post_id)) %>% 
+      mutate(posts_pct=posts/sum(posts)) %>% 
+      filter(cluster!=0) %>% 
+      top_n(5) %>% 
+      arrange(cluster, desc(posts))
   )
 )
