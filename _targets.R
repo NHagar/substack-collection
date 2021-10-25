@@ -2,7 +2,8 @@ library(targets)
 source("R/functions.R")
 tar_option_set(packages = c("tidyverse",
                             "Rtsne",
-                            "dbscan"))
+                            "dbscan",
+                            "igraph"))
 
 set.seed(20211019)
 
@@ -118,5 +119,31 @@ list(
       filter(cluster!=0) %>% 
       top_n(5) %>% 
       arrange(cluster, desc(posts))
+  ),
+  tar_target(
+    cross_pubs,
+    journalists %>% 
+      filter(!is.na(domain) &
+               !is_internal &
+               !is_repeat) %>% 
+      filter(grepl("substack.com", str_rep)) %>% 
+      select(base_url, domain) %>% 
+      mutate(base_url=gsub("https://", "", base_url, fixed=T)) %>% 
+      group_by(base_url, domain) %>% 
+      summarize(weight=n()) %>% 
+      rename(c("V1"=base_url, "V2"=domain))
+  ),
+  tar_target(
+    cross_pubs_f,
+    cross_pubs %>% 
+      filter(V2 %in% cross_pubs$V1)
+  ),
+  tar_target(
+    graph_cross,
+    graph_from_data_frame(cross_pubs_f)
+  ),
+  tar_target(
+    graph_powerlaw,
+    fit_power_law(degree(graph_cross))
   )
 )
