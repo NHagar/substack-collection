@@ -144,3 +144,10 @@ get_opt_pc <- function(df) {
   
   return(optPC)
 }
+
+df_out <- function(df, path) {
+  df %>% 
+    write_csv(path)
+  
+  return(path)
+}

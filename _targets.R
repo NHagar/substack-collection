@@ -183,5 +183,33 @@ list(
              lower = pct - 1.96 * se) %>% 
       ggplot(aes(category, pct)) + 
       geom_bar(stat="identity")
+  ),
+  tar_target(
+    cdf,
+    classifications_df %>% 
+      filter(!is_internal &
+               !is_repeat &
+               !is_other_substack) %>% 
+      group_by(domain) %>% 
+      summarize(count=n()) %>% 
+      arrange(desc(count)) %>% 
+      mutate(cum=cumsum(count),
+             cdf=cum/max(cum),
+             row=row_number())
+  ),
+  tar_target(
+    to_classify,
+    cdf %>% 
+      filter(cdf<=.75) %>% 
+      df_out(., "./data/to_classify_raw.csv"),
+    format="file"
+  ),
+  tar_target(
+    classified_path,
+    "./data/classified.csv"
+  ),
+  tar_target(
+    classifications,
+    read_csv(classified_path)
   )
 )
