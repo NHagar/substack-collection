@@ -3,7 +3,8 @@ source("R/functions.R")
 tar_option_set(packages = c("tidyverse",
                             "Rtsne",
                             "dbscan",
-                            "igraph"))
+                            "igraph",
+                            "widyr"))
 
 set.seed(20211019)
 
@@ -248,5 +249,37 @@ list(
       ggplot(aes(class, pct)) + 
       geom_point() + 
       geom_errorbar(aes(ymin=lower, ymax=upper, width=0.1))
+  ),
+  tar_target(
+    for_similarity,
+    classifications_df %>% 
+      group_by(domain) %>% 
+      summarize(pubs=n_distinct(publication_id)) %>% 
+      filter(pubs>=2)
+  ),
+  tar_target(
+    domain_table,
+    left_join(for_similarity,
+              classifications_df
+    ) %>% 
+      group_by(publication_id, domain) %>% 
+      summarize(links=n()) %>% 
+      ungroup()
+  ),
+  tar_target(
+    closest,
+    domain_table %>% 
+      pairwise_similarity(publication_id, domain, links) %>%
+      arrange(desc(similarity))
+  ),
+  tar_target(
+    similarity_plot,
+    closest %>% 
+      mutate(str_rep=ifelse(item1<item2,
+                            str_c(as.character(item1), as.character(item2)),
+                            str_c(as.character(item2), as.character(item1)))) %>%
+      distinct(str_rep, .keep_all=T) %>% 
+      ggplot(aes(similarity)) + 
+      geom_density()
   )
 )
