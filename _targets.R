@@ -211,5 +211,42 @@ list(
   tar_target(
     classifications,
     read_csv(classified_path)
+  ),
+  tar_target(
+    tagged_df,
+    left_join(classifications_df %>% 
+                filter(!is.na(domain) &
+                         !is_internal &
+                         !is_repeat &
+                         !is_other_substack),
+              classifications
+    )
+  ),
+  tar_target(
+    top_five,
+    tagged_df %>% 
+      filter(!is.na(class)) %>% 
+      group_by(class, domain) %>% 
+      summarize(count=n()) %>% 
+      arrange(desc(count)) %>% 
+      top_n(5)
+  ),
+  tar_target(
+    external_prop,
+    tagged_df %>% 
+      filter(!is.na(class)) %>% 
+      mutate(class=ifelse(
+        class=="n", "News",
+        ifelse(class=="p", "Platform", "Other")
+      )) %>% 
+      group_by(class) %>% 
+      dplyr::summarize(count=n()) %>% 
+      mutate(pct=count/sum(count),
+             se=sqrt((1/1000)*pct*(1-pct)),
+             lower = pct - 1.96*se,
+             upper = pct + 1.96*se) %>% 
+      ggplot(aes(class, pct)) + 
+      geom_point() + 
+      geom_errorbar(aes(ymin=lower, ymax=upper, width=0.1))
   )
 )
