@@ -145,5 +145,43 @@ list(
   tar_target(
     graph_powerlaw,
     fit_power_law(degree(graph_cross))
+  ),
+  tar_target(
+    classifications_df,
+    journalists %>% 
+      mutate(base_url=gsub("https://", "", base_url),
+             is_other_substack=grepl("substack.com", domain) & 
+               !is_internal &
+               !is_repeat &
+               domain %in% base_url)    
+  ),
+  tar_target(
+    clf_proportions,
+    classifications_df %>% 
+      group_by(is_internal, is_repeat, is_other_substack) %>% 
+      summarize(links=n()) %>% 
+      filter(!is.na(is_internal)) %>% 
+      ungroup() %>%
+      mutate(category = ifelse(
+        is_internal,
+        "internal",
+        ifelse(
+          (is_repeat & !is_internal),
+          "promotional",
+          ifelse(
+            is_other_substack,
+            "other_substack",
+            "external"
+          )
+        )
+      )) %>% 
+      group_by(category) %>% 
+      summarize(links=sum(links)) %>% 
+      mutate(pct=links/sum(links),
+             se=sqrt(pct * (1-pct) / sum(links)),
+             upper = pct + 1.96 * se,
+             lower = pct - 1.96 * se) %>% 
+      ggplot(aes(category, pct)) + 
+      geom_bar(stat="identity")
   )
 )
