@@ -281,5 +281,9 @@ list(
       distinct(str_rep, .keep_all=T) %>% 
       ggplot(aes(similarity)) + 
       geom_density()
+  ),
+  tar_target(
+    similarity_permuted,
+    perm_cosine(domain_table, 10000)
   )
 )

@@ -151,3 +151,26 @@ df_out <- function(df, path) {
   
   return(path)
 }
+
+perm_cosine <- function(df, it) {
+  res <- vector(mode="list", length=100)
+  for (i in c(1:it)) {
+    shuffled <- df %>% 
+      group_by(domain) %>% 
+      mutate(links=sample(links)) %>% 
+      ungroup()
+    
+    closest <- shuffled %>% 
+      pairwise_similarity(publication_id, domain, links) %>%
+      arrange(desc(similarity)) %>% 
+      mutate(str_rep=ifelse(item1<item2,
+                            str_c(as.character(item1), as.character(item2)),
+                            str_c(as.character(item2), as.character(item1)))) %>%
+      distinct(str_rep, .keep_all=T)
+    
+    res[[i]] <- closest
+    
+  }
+  
+  return(res)
+}
