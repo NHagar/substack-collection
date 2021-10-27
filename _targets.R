@@ -273,6 +273,12 @@ list(
       arrange(desc(similarity))
   ),
   tar_target(
+    similarity_observed,
+    closest %>% 
+      summarize(m=median(similarity)) %>% 
+      pull()
+  ),
+  tar_target(
     similarity_plot,
     closest %>% 
       mutate(str_rep=ifelse(item1<item2,
@@ -285,5 +291,11 @@ list(
   tar_target(
     similarity_permuted,
     perm_cosine(domain_table, 10000)
+  ),
+  tar_target(
+    perm_test,
+    (sum(similarity_permuted > similarity_observed) / 10000) %>% 
+      binom.test(., length(similarity_permuted)) %>% 
+      .$conf.int
   )
 )

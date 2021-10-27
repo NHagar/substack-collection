@@ -166,7 +166,9 @@ perm_cosine <- function(df, it) {
       mutate(str_rep=ifelse(item1<item2,
                             str_c(as.character(item1), as.character(item2)),
                             str_c(as.character(item2), as.character(item1)))) %>%
-      distinct(str_rep, .keep_all=T)
+      distinct(str_rep, .keep_all=T) %>% 
+      summarize(m=median(similarity)) %>% 
+      pull()
     
     res[[i]] <- closest
     
