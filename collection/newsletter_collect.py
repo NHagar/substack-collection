@@ -32,7 +32,7 @@ class Newsletter:
         """error handling block for post requests
         """
         print("JSON error - post unavailable")
-        r = {"prev_slug": None}
+        r = {"previous_post_slug": None}
         with open(ERROR_PATH, "a") as f:
             f.write(f"{endpoint}\n")
         
@@ -46,7 +46,7 @@ class Newsletter:
         time.sleep(1)
         try:
             r = call.json()
-            if "prev_slug" not in r:
+            if "previous_post_slug" not in r:
                 r = self.__post_error(endpoint)
         except json.JSONDecodeError:
             r = self.__post_error(endpoint)
@@ -76,8 +76,8 @@ class Newsletter:
             first_slug = self.index['slug']
             r = self.__post_loop(first_slug)
             posts.append(r)
-            while r['prev_slug']:
-                slug = r['prev_slug']
+            while r['previous_post_slug']:
+                slug = r['previous_post_slug']
                 r = self.__post_loop(slug)
                 posts.append(r)
         else:
