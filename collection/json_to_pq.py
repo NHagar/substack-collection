@@ -52,7 +52,6 @@ df = df.drop(columns=["type",
                       "pins",
                       "section_pins",
                       "publishedBylines",
-                      "latest_comment_id",
                       "comments"])
 
 # %%
